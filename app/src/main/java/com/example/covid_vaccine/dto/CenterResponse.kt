@@ -1,8 +1,8 @@
-package com.example.covid_vaccine.model
+package com.example.covid_vaccine.dto
 
 data class CenterResponse(
     val currentCount: Int,
-    val data: List<Center>,
+    val data: List<CenterDTO>,
     val matchCount: Int,
     val page: Int,
     val perPage: Int,

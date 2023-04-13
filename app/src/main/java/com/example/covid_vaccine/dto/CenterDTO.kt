@@ -1,6 +1,6 @@
-package com.example.covid_vaccine.model
+package com.example.covid_vaccine.dto
 
-data class Center(
+data class CenterDTO(
     val address: String,
     val centerName: String,
     val centerType: String,
