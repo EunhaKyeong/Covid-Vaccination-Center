@@ -1,5 +1,6 @@
 package com.example.covid_vaccine.di
 
+import com.example.covid_vaccine.interceptor.HttpHeaderInterceptor
 import com.example.covid_vaccine.service.CenterService
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
@@ -14,10 +15,10 @@ import retrofit2.converter.gson.GsonConverterFactory
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
-    private const val BASE_URL = "https://api.odcloud.kr/api"
+    private const val BASE_URL = "https://api.odcloud.kr/api/"
 
     @Provides
-    fun provideOkHttpClient(): OkHttpClient = OkHttpClient.Builder().build()
+    fun provideOkHttpClient(): OkHttpClient = OkHttpClient.Builder().addInterceptor(HttpHeaderInterceptor).build()
 
     @Provides
     fun provideGson(): Gson {
