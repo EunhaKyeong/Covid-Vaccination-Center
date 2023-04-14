@@ -1,30 +1,37 @@
 package com.example.covid_vaccine.repository
 
-import android.util.Log
-import com.example.covid_vaccine.datasource.CenterDataSource
-import com.example.covid_vaccine.domain.Center
+import com.example.covid_vaccine.datasource.local.CovidVaccineDataSource
+import com.example.covid_vaccine.datasource.remote.CenterDataSource
 import com.example.covid_vaccine.dto.CenterDTO
+import com.example.covid_vaccine.entity.CenterEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
 
-class CenterRepositoryImpl @Inject constructor(private val centerDataSource: CenterDataSource): CenterRepository {
-    override fun getCenters(page: Int): Flow<List<Center>> = flow{
+class CenterRepositoryImpl @Inject constructor(private val centerDataSource: CenterDataSource, private val covidVaccineDataSource: CovidVaccineDataSource): CenterRepository {
+    override fun getCenters(page: Int): Flow<Result<List<Long>>> = flow {
         centerDataSource.getCenters(page).collect {
-            Log.d("CenterRepositoryImpl", "getCenters: $it")
-            emit(mapperToCenter(it.data))
-        }
+            it.onSuccess {response ->
+                val centers: List<CenterEntity> = mapperToCenterEntities(response.data)
+                covidVaccineDataSource.addCenters(centers).collect { results ->
+                    emit(Result.success(results))
+                }
+            }
 
+            it.onFailure {e ->
+                emit(Result.failure(e))
+            }
+        }
     }
 
-    private fun mapperToCenter(centers: List<CenterDTO>): List<Center> {
+    private fun mapperToCenterEntities(centers: List<CenterDTO>): List<CenterEntity> {
         return centers.toList().map {
-            Center(
-                it.address,
-                it.centerName,
-                it.facilityName,
-                it.phoneNumber,
-                it.updatedAt
+            CenterEntity(
+                address = it.address,
+                centerName = it.centerName,
+                facilityName = it.facilityName,
+                phoneNumber = it.phoneNumber,
+                updatedAt = it.updatedAt
             )
         }
     }
