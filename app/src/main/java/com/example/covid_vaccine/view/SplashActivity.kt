@@ -14,6 +14,8 @@ class SplashActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_splash)
 
-        splashViewModel.getCenters(1)
+        for (i in 1..10) {
+            splashViewModel.getCenters(i)
+        }
     }
 }
