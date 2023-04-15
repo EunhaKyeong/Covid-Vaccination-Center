@@ -5,6 +5,9 @@ plugins {
     id 'com.google.dagger.hilt.android'
 }
 
+Properties properties = new Properties()
+properties.load(project.rootProject.file('local.properties').newDataInputStream())
+
 android {
     namespace 'com.example.covid_vaccine'
     compileSdk 33
@@ -17,6 +20,9 @@ android {
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField "String", "VACCINATION_CENTER_API_KEY", properties['VACCINATION_CENTER_API_KEY']
+        buildConfigField "String", "NAVER_MAP_CLIENT_ID", properties['NAVER_MAP_CLIENT_ID']
     }
 
     buildTypes {
@@ -31,6 +37,14 @@ android {
     }
     kotlinOptions {
         jvmTarget = '1.8'
+    }
+
+    viewBinding{
+        enabled = true
+    }
+
+    dataBinding {
+        enabled = true
     }
 }
 
@@ -49,6 +63,8 @@ dependencies {
     implementation 'androidx.activity:activity-ktx:1.6.1'
     implementation 'androidx.room:room-runtime:2.5.0'
     implementation 'androidx.room:room-ktx:2.5.0'
+    implementation 'com.naver.maps:map-sdk:3.16.2'
+    implementation 'com.google.android.gms:play-services-location:21.0.1'
 
     annotationProcessor 'androidx.room:room-compiler:2.5.0'
 
