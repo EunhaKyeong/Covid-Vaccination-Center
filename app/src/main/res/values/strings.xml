@@ -1,3 +1,11 @@
 <resources>
-    <string name="app_name">covid_vaccine</string>
+    <string name="app_name">코로나19 예방접종센터\n지도 서비스</string>
+
+    <string name="title_noti">알림</string>
+    <string name="title_setting">설정</string>
+
+    <string name="action_cancel">취소</string>
+
+    <string name="msg_denied_current_location">위치 권한이 거부 되어 현재 위치를 확인할 수 없습니다.\n[설정] 버튼을 누르면 앱 위치 권한 설정 화면으로 이동할 수 있습니다.\n현재 위치로 이동하고 싶으시면 [권한]->[위치]에서 위치 권한을 허용해주세요.</string>
+    <string name="msg_null_current_location">현재 위치 정보를 가져오는 중 문제가 발생했습니다. 다시 시도해주세요.</string>
 </resources>
