@@ -1,5 +1,6 @@
 package com.example.covid_vaccine.datasource.remote
 
+import com.example.covid_vaccine.datasource.BaseDataSource
 import com.example.covid_vaccine.dto.CenterResponse
 import com.example.covid_vaccine.service.CenterService
 import kotlinx.coroutines.flow.Flow

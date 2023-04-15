@@ -9,16 +9,43 @@ import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
 
 class CenterRepositoryImpl @Inject constructor(private val centerDataSource: CenterDataSource, private val covidVaccineDataSource: CovidVaccineDataSource): CenterRepository {
-    override fun getCenters(page: Int): Flow<Result<List<Long>>> = flow {
-        centerDataSource.getCenters(page).collect {
-            it.onSuccess {response ->
+    override fun getCentersFromApi(page: Int): Flow<Result<List<Long>>> = flow {
+        centerDataSource.getCenters(page).collect {apiResult ->
+            apiResult.onSuccess { response ->
                 val centers: List<CenterEntity> = mapperToCenterEntities(response.data)
-                covidVaccineDataSource.addCenters(centers).collect { results ->
-                    emit(Result.success(results))
+                covidVaccineDataSource.addCenters(centers).collect { dbResults ->
+                    dbResults.onSuccess {
+                        emit(Result.success(it))
+                    }
+                    dbResults.onFailure {e ->
+                        emit(Result.failure(e))
+                    }
                 }
             }
 
-            it.onFailure {e ->
+            apiResult.onFailure {e ->
+                emit(Result.failure(e))
+            }
+        }
+    }
+
+    override fun getCentersFromDB(): Flow<Result<List<CenterEntity>>> = flow {
+        covidVaccineDataSource.getCenters().collect { result ->
+            result.onSuccess {centerEntities ->
+                emit(Result.success(centerEntities))
+            }
+            result.onFailure {e ->
+                emit(Result.failure(e))
+            }
+        }
+    }
+
+    override fun deleteAll(): Flow<Result<Unit>> = flow {
+        covidVaccineDataSource.deleteAll().collect() { result ->
+            result.onSuccess {
+                emit(Result.success(it))
+            }
+            result.onFailure { e ->
                 emit(Result.failure(e))
             }
         }
@@ -28,7 +55,10 @@ class CenterRepositoryImpl @Inject constructor(private val centerDataSource: Cen
         return centers.toList().map {
             CenterEntity(
                 address = it.address,
+                lat = it.lat.toDouble(),
+                lng = it.lng.toDouble(),
                 centerName = it.centerName,
+                centerType = it.centerType,
                 facilityName = it.facilityName,
                 phoneNumber = it.phoneNumber,
                 updatedAt = it.updatedAt
