@@ -1,18 +1,21 @@
-package com.example.covid_vaccine.datasource.remote
+package com.example.covid_vaccine.datasource
 
+import android.database.sqlite.SQLiteException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import retrofit2.HttpException
 import java.io.IOException
 
 abstract class BaseDataSource {
-    protected fun <T> handleResponse(api: suspend () -> T): Flow<Result<T>> = flow {
+    protected fun <T> handleResponse(task: suspend () -> T): Flow<Result<T>> = flow {
         try {
-            emit(Result.success(api.invoke()))
+            emit(Result.success(task.invoke()))
         } catch (e: IOException) {
             emit(Result.failure(IOException(ERROR_NETWORK)))
         } catch (e: HttpException) {
             emit(Result.failure(HttpException(e.response())))
+        } catch (e: SQLiteException) {
+            emit(Result.failure(SQLiteException(e.message)))
         } catch (e: Exception) {
             e.printStackTrace()
             emit(Result.failure(Exception(ERROR_UNKNOWN)))
