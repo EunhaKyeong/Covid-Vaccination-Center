@@ -1,15 +1,16 @@
 package com.example.covid_vaccine.viewmodel
 
 import android.database.sqlite.SQLiteException
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.covid_vaccine.MyApplication.Companion.ERROR_500
+import com.example.covid_vaccine.MyApplication.Companion.ERROR_NETWORK
+import com.example.covid_vaccine.MyApplication.Companion.ERROR_SQLITE
+import com.example.covid_vaccine.MyApplication.Companion.ERROR_UNKNOWN
 import com.example.covid_vaccine.repository.CenterRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.io.IOException
@@ -17,44 +18,31 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SplashViewModel @Inject constructor(private val centerRepository: CenterRepository): ViewModel() {
+    private val _error = MutableLiveData<String>()
+    val error: LiveData<String> get() = _error
+
     private val _centerCnt: MutableLiveData<Int> = MutableLiveData(0)
     val centerCnt: LiveData<Int> get() = _centerCnt
 
-    fun getCenters(page: Int) {
+    fun saveCenters(totalPage: Int) {
         viewModelScope.launch {
-            centerRepository.getCentersFromApi(page).collect {
-                it.onSuccess {centers ->
+            centerRepository.getCentersFromApi(totalPage).collect {
+                it.onSuccess { centers ->
                     _centerCnt.value = _centerCnt.value?.plus(centers.size)
-                    Log.d("SplashViewModel", "${_centerCnt.value}")
-                }
-
-                it.onFailure {e ->
-                    when (e) {
-                        is IOException -> Log.e("SplashViewModel", "[IOException] ${e.message}")
-                        is HttpException -> Log.e("SplashViewModel", "[HttpException] code: ${e.response()?.code()}, body: ${e.response()?.body()}")
-                        is SQLiteException -> Log.e("SplashViewModel", "[SQLiteException] ${e.message}}")
-                        is Exception -> Log.e("SplashViewModel", "[Exception] ${e.message}")
-                    }
-                }
-
-            }
-        }
-    }
-
-    fun deleteAll() {
-        viewModelScope.launch {
-            centerRepository.deleteAll().collect() {
-                it.onSuccess {
-                    for (i in 1..10) {
-                        getCenters(i)
-                    }
                 }
 
                 it.onFailure { e ->
                     when (e) {
-                        is IOException -> Log.e("SplashViewModel", "[IOException] ${e.message}")
-                        is SQLiteException -> Log.e("SplashViewModel", "[SQLiteException] ${e.message}}")
-                        is Exception -> Log.e("SplashViewModel", "[Exception] ${e.message}")
+                        is IOException -> _error.postValue(ERROR_NETWORK)
+                        is HttpException -> {
+                            when(e.response()?.code()) {
+                                401 -> _error.postValue("잘못된 인증정보 입니다. 개발사에 문의해 주세요.")
+                                500 -> _error.postValue(ERROR_500)
+                                else -> _error.postValue("코로나19 예방접종센터 제공 서비스에 문제가 발생했습니다. 개발사에 문의해 주세요.")
+                            }
+                        }
+                        is SQLiteException -> _error.postValue(ERROR_SQLITE)
+                        is Exception -> _error.postValue(ERROR_UNKNOWN)
                     }
                 }
             }
