@@ -5,6 +5,10 @@ import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.Color
+import android.location.LocationManager
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
@@ -178,7 +182,29 @@ class MapActivity : FragmentActivity(), OnMapReadyCallback {
         }
     }
 
+    private fun checkGPS(): Boolean {
+        val locationManager = baseContext.getSystemService(LOCATION_SERVICE) as LocationManager
+
+        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+    }
+
+    private fun checkNetwork(): Boolean {
+        val connectivityManager: ConnectivityManager = baseContext.getSystemService(ConnectivityManager::class.java)
+        val network: Network = connectivityManager.activeNetwork ?: return false
+        val actNetwork: NetworkCapabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+
+        return when {
+            actNetwork.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
+            actNetwork.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
+            else -> false
+        }
+    }
+
     private fun observe() {
+        mapViewModel.error.observe(this, Observer {
+            Toast.makeText(baseContext, it, Toast.LENGTH_SHORT).show()
+        })
+
         mapViewModel.centers.observe(this, Observer {
             centers = it
             setMarkers()
@@ -188,6 +214,16 @@ class MapActivity : FragmentActivity(), OnMapReadyCallback {
     //현재 위치 버튼 클릭 시 호출되는 함수
     fun setCurrentLocation() {
         binding.mapInfoLl.visibility = View.GONE
-        locationPermissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+
+        val gpsCheck: Boolean = checkGPS()
+        val networkCheck: Boolean = checkNetwork()
+
+        if (gpsCheck && networkCheck) {
+            locationPermissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+        } else if (!gpsCheck) {
+            Toast.makeText(baseContext, getString(R.string.msg_gps_error), Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(baseContext, getString(R.string.msg_network_error2), Toast.LENGTH_SHORT).show()
+        }
     }
 }
