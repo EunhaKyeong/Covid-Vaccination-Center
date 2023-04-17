@@ -16,6 +16,7 @@ import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.annotation.UiThread
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Observer
@@ -59,6 +60,8 @@ class MapActivity : FragmentActivity(), OnMapReadyCallback {
     private lateinit var locationPermissionDeniedAlert: AlertDialog.Builder
     private lateinit var centers: List<CenterEntity>
 
+    private lateinit var mapFragment: MapFragment
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -72,6 +75,7 @@ class MapActivity : FragmentActivity(), OnMapReadyCallback {
         initLocationPermissionDeniedAlert()
     }
 
+    @UiThread
     override fun onMapReady(naverMap: NaverMap) {
         this.naverMap = naverMap
 
@@ -81,9 +85,10 @@ class MapActivity : FragmentActivity(), OnMapReadyCallback {
             binding.mapInfoLl.visibility = View.GONE    //정보안내창이 보여지고 있으면 GONE으로 상태 변경
         }
 
-        //예방접종센터 데이터가 초기화되지 않은 경우 Room에서 예방접종센터 리스트 데이터 얻어오기
-        if (!::centers.isInitialized) {
+        if (!::centers.isInitialized) { //예방접종센터 데이터가 초기화되지 않은 경우 Room에서 예방접종센터 리스트 데이터 얻어오기
             mapViewModel.getCenters()
+        } else {    //예방접종센터 데이터가 초기화 돼 있으면 화면에 회전이 발생한 경우.
+            setMarkers()
         }
     }
 
@@ -118,7 +123,7 @@ class MapActivity : FragmentActivity(), OnMapReadyCallback {
 
     //네이버맵 관련 세팅
     private fun initNaverMap() {
-        val mapFragment = supportFragmentManager.findFragmentById(R.id.map) as MapFragment?
+        mapFragment = supportFragmentManager.findFragmentById(R.id.map) as MapFragment?
             ?: MapFragment.newInstance().also {
                 supportFragmentManager.beginTransaction().add(R.id.map, it).commit()
             }
@@ -207,7 +212,11 @@ class MapActivity : FragmentActivity(), OnMapReadyCallback {
 
         mapViewModel.centers.observe(this, Observer {
             centers = it
-            setMarkers()
+
+            //Initialized Exception 방지를 위해 naverMap이 초기화 돼 있을 경우에만 setMarkers 호출.
+            if (::naverMap.isInitialized) {
+                setMarkers()
+            }
         })
     }
 
