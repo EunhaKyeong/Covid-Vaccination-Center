@@ -59,7 +59,6 @@ class MapActivity : FragmentActivity(), OnMapReadyCallback {
     private lateinit var locationCbInSetMap: LocationCallback
     private lateinit var locationPermissionDeniedAlert: AlertDialog.Builder
     private lateinit var centers: List<CenterEntity>
-
     private lateinit var mapFragment: MapFragment
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -85,11 +84,7 @@ class MapActivity : FragmentActivity(), OnMapReadyCallback {
             binding.mapInfoLl.visibility = View.GONE    //정보안내창이 보여지고 있으면 GONE으로 상태 변경
         }
 
-        if (!::centers.isInitialized) { //예방접종센터 데이터가 초기화되지 않은 경우 Room에서 예방접종센터 리스트 데이터 얻어오기
-            mapViewModel.getCenters()
-        } else {    //예방접종센터 데이터가 초기화 돼 있으면 화면에 회전이 발생한 경우.
-            setMarkers()
-        }
+        mapViewModel.getCenters()   //Room에서 예방접종센터 리스트 데이터 얻어오기
     }
 
     //현재 위치를 가져올  때 사용되는 FusedLocationProviderClient 관련 세팅
@@ -148,7 +143,7 @@ class MapActivity : FragmentActivity(), OnMapReadyCallback {
 
     //마커 만들기
     private fun setMarkers() {
-        centers.forEach {center ->
+        centers.forEachIndexed {idx, center ->
             val marker: Marker = Marker().apply {
                 position = LatLng(center.lat, center.lng)
 
@@ -212,11 +207,7 @@ class MapActivity : FragmentActivity(), OnMapReadyCallback {
 
         mapViewModel.centers.observe(this, Observer {
             centers = it
-
-            //Initialized Exception 방지를 위해 naverMap이 초기화 돼 있을 경우에만 setMarkers 호출.
-            if (::naverMap.isInitialized) {
-                setMarkers()
-            }
+            setMarkers()
         })
     }
 
