@@ -20,6 +20,7 @@ class SplashActivity : AppCompatActivity() {
     private val splashViewModel: SplashViewModel by viewModels()
 
     private var progress: Int = 0
+    private var progressFlag: Boolean = false   //데이터 저장이 완료 됐으면 true, 저장이 완료되지 않았으면 false
 
     private lateinit var binding: ActivitySplashBinding
 
@@ -42,7 +43,7 @@ class SplashActivity : AppCompatActivity() {
 
                 when (progress) {
                     80 -> { //80%가 됐을 때
-                        if (splashViewModel.centerCnt.value?:0 < 100) { //데이터 저장이 완료되지 않았으면 잠시 멈추고 대기
+                        if (!progressFlag) {    //데이터 저장이 완료되지 않았으면 잠시 멈추고 대기
                             cancel()
                             break
                         }
@@ -81,16 +82,18 @@ class SplashActivity : AppCompatActivity() {
         })
 
         splashViewModel.centerCnt.observe(this, Observer {
-            if (it==100 && binding.splashPb.progress<100) { //100개 데이터를 가지고 왔고, 프로그래스바가 80%에서 멈춰있을 때
-                progress = binding.splashPb.progress
+            if (it == 100) {    //100개 데이터를 가지고 왔으면 progressFlag를 true로 만들어 100%를 만들고, MapActivity로 이동할 수 있게 만듦.
+                progressFlag = true
 
-                lifecycleScope.launch(Dispatchers.Main) {
-                    while (progress < 100) {
-                        delay(20)   //0.4초 안에 나머지 20% 채우기
-                        binding.splashPb.progress = ++progress
+                if (binding.splashPb.progress < 100) {  //프로그래스바가 80%에서 멈춰있을 때
+                    lifecycleScope.launch(Dispatchers.Main) {
+                        while (progress < 100) {
+                            delay(20)   //0.4초 안에 나머지 20% 채우기
+                            binding.splashPb.progress = ++progress
+                        }
+
+                        moveToMapActivity() //100%가 되면 MapActivity로 이동
                     }
-
-                    moveToMapActivity() //100%가 되면 MapActivity로 이동
                 }
             }
         })
