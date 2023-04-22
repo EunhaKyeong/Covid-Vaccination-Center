@@ -11,40 +11,46 @@ import javax.inject.Inject
 class CenterRepositoryImpl @Inject constructor(private val centerDataSource: CenterDataSource, private val covidVaccineDataSource: CovidVaccineDataSource): CenterRepository {
     override fun getCentersFromApi(totalPage: Int): Flow<Result<List<Long>>> = flow {
         // Step 1: Room 데이터 삭제
-        val deleteResult = covidVaccineDataSource.deleteAll()
+        val deleteAllResult = covidVaccineDataSource.deleteAll()
 
-        if (deleteResult.isSuccess) {
+        deleteAllResult.onSuccess {
             for (page in 1..totalPage) {
-                // Step 2: Retrofit을 통해 데이터 가져오기
-                val getResult = centerDataSource.getCenters(page)
+                val getCentersResult = centerDataSource.getCenters(page)
 
-                if (getResult.isSuccess) {
+                getCentersResult.onSuccess {
                     // Step 3: 가져온 데이터를 Room에 저장
-                    val centers: List<CenterEntity> = mapperToCenterEntities(getResult.getOrThrow().data)
+                    val centers: List<CenterEntity> = mapperToCenterEntities(getCentersResult.getOrThrow().data)
+                    val saveCentersResult = covidVaccineDataSource.saveCenters(centers)
 
-                    val saveResult = covidVaccineDataSource.saveCenters(centers)
-                    if (saveResult.isSuccess) {
-                        emit(Result.success(saveResult.getOrThrow()))
-                    } else {
-                        emit(Result.failure(saveResult.exceptionOrNull()?: Throwable(ERROR_FAILURE_ERROR)))
+                    saveCentersResult.onSuccess {
+                        emit(Result.success(it))
                     }
-                } else {
-                    emit(Result.failure(getResult.exceptionOrNull()?: Throwable(ERROR_FAILURE_ERROR)))
-                    break
+
+                    saveCentersResult.onFailure {
+                        emit(Result.failure(it))
+                    }
+                }
+
+                getCentersResult.onFailure {
+                    emit(Result.failure(it))
                 }
             }
-        } else {
-            emit(Result.failure(deleteResult.exceptionOrNull()?: Throwable(ERROR_FAILURE_ERROR)))
+        }
+
+        deleteAllResult.onFailure {
+            emit(Result.failure(it))
         }
     }
 
     override fun getCentersFromDB(): Flow<Result<List<CenterEntity>>> = flow {
-        val result = covidVaccineDataSource.getCenters()
+        val getCentersResult = covidVaccineDataSource.getCenters()
 
-        if (result.isSuccess) {
-            emit(Result.success(result.getOrThrow()))
-        } else {
-            emit(Result.failure(result.exceptionOrNull()?: Throwable(ERROR_FAILURE_ERROR)))
+        getCentersResult.onSuccess {
+            emit(Result.success(getCentersResult.getOrThrow()))
+        }
+
+        getCentersResult.onFailure {
+            emit(Result.failure(it))
         }
     }
 
@@ -61,9 +67,5 @@ class CenterRepositoryImpl @Inject constructor(private val centerDataSource: Cen
                 updatedAt = it.updatedAt
             )
         }
-    }
-
-    companion object {
-        private const val ERROR_FAILURE_ERROR = "데이터 처리 중 문제가 발생했습니다."
     }
 }
